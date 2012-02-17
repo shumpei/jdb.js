@@ -14,15 +14,6 @@ $(function() {
 	    aaa: { since: 3 }
 	}
     });
-    var EmployeeStore2 = new JDBObjectStore({
-	name: 'EmployeeStore2',
-	database: EmployeeDB,
-	key: { path: 'id', autoIncrement: true },
-	indexes: {
-	    birthday: {}
-	},
-	since: 6
-    });
     EmployeeDB
 	.open(function() {
 	    listEmployees();
@@ -35,6 +26,8 @@ $(function() {
 	employeeList.empty();
 	EmployeeStore.all().iterate(function(employee) {
 	    var row = $('<tr/>').data('employeeId', employee.id);
+	    var checkbox = $('<input type="checkbox" class="checkForDelete">');
+	    $('<td/>').append(checkbox).appendTo(row);
 	    $('<td/>', { text: employee.id }).appendTo(row);
 	    $('<td/>', { text: employee.name }).appendTo(row);
 	    $('<td/>', { text: employee.age }).appendTo(row);
@@ -74,6 +67,29 @@ $(function() {
 	    $('#name').val(employee.name);
 	    $('#age').val(employee.age);
 	    $('#gender').val(employee.gender);
+	});
+    });
+    $('#deleteButton').click(function() {
+	if (!confirm('Are you sure?')) {
+	    return;
+	}
+	var rows = employeeList.find('.checkForDelete:checked').closest('tr');
+	var rowCount = rows.length, deleteSucceeded = 0;
+
+	EmployeeDB.transaction(function() {
+	    rows.each(function() {
+		var employeeId = $(this).data('employeeId');
+		EmployeeStore.remove(employeeId, function(result, error) {
+		    if (error) {
+			alert('Error');
+			return;
+		    }
+		    deleteSucceeded++;
+		    if (deleteSucceeded === rowCount) {
+			rows.remove();
+		    }
+		});
+	    });
 	});
     });
 });

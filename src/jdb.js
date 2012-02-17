@@ -174,7 +174,7 @@
 	this.onComplete = onComplete;
 	var storeNames = [];
 	if (stores === null || stores === undefined) {
-	    storeNames = slice.call(database.storeNames);
+	    storeNames = slice.call(database.getStoreNames());
 	} else {
 	    if (stores instanceof Array) {
 		stores.forEach(function(store) {
@@ -348,6 +348,26 @@
 	this.database.stores[this.name] = this;
     };
     ObjectStore.prototype = {
+	remove: function(key, callback) {
+	    var self = this;
+	    return executeInCurrentTransaction(
+		function(tx) {
+		    var idbObjectStore = tx.idbTransaction.objectStore(self.name);
+		    var r = idbObjectStore['delete'](key);
+		    if (typeof callback === 'function') {
+			r.addEventListener('success', function() {
+			    callback(r.result);
+			}, false);
+			r.addEventListener('error', function() {
+			    callback(undefined, r.error);
+			}, false);
+		    }
+		    return new StoreOperationResult(r);
+		},
+		this.database,
+		IDBTransaction.READ_WRITE,
+		this);
+	},
 	put: function(obj, callback) {
 	    var self = this;
 	    return executeInCurrentTransaction(
