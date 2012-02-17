@@ -73,23 +73,35 @@ $(function() {
 	if (!confirm('Are you sure?')) {
 	    return;
 	}
-	var rows = employeeList.find('.checkForDelete:checked').closest('tr');
-	var rowCount = rows.length, deleteSucceeded = 0;
-
-	EmployeeDB.transaction(function() {
-	    rows.each(function() {
-		var employeeId = $(this).data('employeeId');
-		EmployeeStore.remove(employeeId, function(result, error) {
-		    if (error) {
-			alert('Error');
-			return;
-		    }
-		    deleteSucceeded++;
-		    if (deleteSucceeded === rowCount) {
-			rows.remove();
-		    }
+	if ($('#checkAll').is(':checked')) {
+	    EmployeeStore.clear(function(result, error) {
+		if (error) {
+		    alert('Error');
+		    return;
+		}
+		employeeList.empty();
+	    });
+	} else {
+	    var rows = employeeList.find('.checkForDelete:checked').closest('tr');
+	    var rowCount = rows.length, deleteSucceeded = 0;
+	    EmployeeDB.transaction(function() {
+		rows.each(function() {
+		    var employeeId = $(this).data('employeeId');
+		    EmployeeStore.remove(employeeId, function(result, error) {
+			if (error) {
+			    alert('Error');
+			    return;
+			}
+			deleteSucceeded++;
+			if (deleteSucceeded === rowCount) {
+			    rows.remove();
+			}
+		    });
 		});
 	    });
-	});
+	}
+    });
+    $('#checkAll').change(function() {
+	$('.checkForDelete').attr('checked', this.checked);
     });
 });
