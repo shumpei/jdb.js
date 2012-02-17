@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+
+<form id="employeeForm">
+  <label for="id">ID:</label>
+  <input id="id" type="number" required>
+  <label for="name">Name:</label>
+  <input id="name" required>
+  <label for="age">Age:</label>
+  <input id="age" type="number" required>
+  <label for="gender">Gender:</label>
+  <select id="gender">
+    <option value="0">Men</option>
+    <option value="1">Women</option>
+  </select>
+  <button id="saveButton">Save</button>
+</form>
+
+<table id="employees" border=1>
+  <thead>
+    <tr>
+      <th>ID</th><th>Name</th><th>Age</th><th>Gender</th>
+    </tr>
+  </thead>
+  <tbody>
+  </tbody>
+</table>
+
+<script src="../jquery-1.7.1.min.js"></script>
+<script src="../../src/jdb.js"></script>
+<script src="jdb_employee.js"></script>
