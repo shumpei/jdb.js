@@ -349,71 +349,31 @@
     };
     ObjectStore.prototype = {
 	remove: function(key, callback) {
-	    var self = this;
-	    return executeInCurrentTransaction(
-		function(tx) {
-		    var idbObjectStore = tx.idbTransaction.objectStore(self.name);
-		    var r = idbObjectStore['delete'](key);
-		    if (typeof callback === 'function') {
-			r.addEventListener('success', function() {
-			    callback(r.result);
-			}, false);
-			r.addEventListener('error', function() {
-			    callback(undefined, r.error);
-			}, false);
-		    }
-		    return new StoreOperationResult(r);
-		},
-		this.database,
-		IDBTransaction.READ_WRITE,
-		this);
+	    return this._exec(function(tx, idbObjectStore) {
+		return idbObjectStore['delete'](key);
+	    }, callback, IDBTransaction.READ_WRITE);
 	},
 	clear: function(callback) {
-	    var self = this;
-	    return executeInCurrentTransaction(
-		function(tx) {
-		    var idbObjectStore = tx.idbTransaction.objectStore(self.name);
-		    var r = idbObjectStore.clear();
-		    if (typeof callback === 'function') {
-			r.addEventListener('success', function() {
-			    callback(r.result);
-			}, false);
-			r.addEventListener('error', function() {
-			    callback(undefined, r.error);
-			}, false);
-		    }
-		    return new StoreOperationResult(r);
-		},
-		this.database,
-		IDBTransaction.READ_WRITE,
-		this);
+	    return this._exec(function(tx, idbObjectStore) {
+		return idbObjectStore.clear();
+	    }, callback, IDBTransaction.READ_WRITE);
 	},
 	put: function(obj, callback) {
-	    var self = this;
-	    return executeInCurrentTransaction(
-		function(tx) {
-		    var idbObjectStore = tx.idbTransaction.objectStore(self.name);
-		    var r = idbObjectStore.put(obj);
-		    if (typeof callback === 'function') {
-			r.addEventListener('success', function() {
-			    callback(r.result);
-			}, false);
-			r.addEventListener('error', function() {
-			    callback(undefined, r.error);
-			}, false);
-		    }
-		    return new StoreOperationResult(r);
-		},
-		this.database,
-		IDBTransaction.READ_WRITE,
-		this);
+	    return this._exec(function(tx, idbObjectStore) {
+		return idbObjectStore.put(obj);
+	    }, callback, IDBTransaction.READ_WRITE);
 	},
 	get: function(key, callback) {
+	    return this._exec(function(tx, idbObjectStore) {
+		return idbObjectStore.get(key);
+	    }, callback, IDBTransaction.READ_ONLY);
+	},
+	_exec: function(proc, callback, txMode) {
 	    var self = this;
 	    return executeInCurrentTransaction(
 		function(tx) {
 		    var idbObjectStore = tx.idbTransaction.objectStore(self.name);
-		    var r = idbObjectStore.get(key);
+		    var r = proc(tx, idbObjectStore);
 		    if (typeof callback === 'function') {
 			r.addEventListener('success', function() {
 			    callback(r.result);
@@ -424,9 +384,9 @@
 		    }
 		    return new StoreOperationResult(r);
 		},
-		this.database,
-		IDBTransaction.READ_ONLY,
-		this);
+		self.database,
+		txMode,
+		self);
 	},
 	all: function() {
 	    return new ObjectStoreQuery(this);

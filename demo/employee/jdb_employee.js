@@ -50,7 +50,6 @@ $(function() {
 	EmployeeStore
 	    .put(employee)
 	    .success(function(result) {
-		alert('Succeeded!');
 		listEmployees();
 	    }).error(function() {
 		alert('Error!');
@@ -69,37 +68,39 @@ $(function() {
 	    $('#gender').val(employee.gender);
 	});
     });
+    $('#deleteAllButton').click(function() {
+	if (!confirm('Are you sure?')) {
+	    return;
+	}
+	EmployeeStore.clear(function(result, error) {
+	    if (error) {
+		alert('Error');
+		return;
+	    }
+	    employeeList.empty();
+	});
+    });
     $('#deleteButton').click(function() {
 	if (!confirm('Are you sure?')) {
 	    return;
 	}
-	if ($('#checkAll').is(':checked')) {
-	    EmployeeStore.clear(function(result, error) {
-		if (error) {
-		    alert('Error');
-		    return;
-		}
-		employeeList.empty();
-	    });
-	} else {
-	    var rows = employeeList.find('.checkForDelete:checked').closest('tr');
-	    var rowCount = rows.length, deleteSucceeded = 0;
-	    EmployeeDB.transaction(function() {
-		rows.each(function() {
-		    var employeeId = $(this).data('employeeId');
-		    EmployeeStore.remove(employeeId, function(result, error) {
-			if (error) {
-			    alert('Error');
-			    return;
-			}
-			deleteSucceeded++;
-			if (deleteSucceeded === rowCount) {
-			    rows.remove();
-			}
-		    });
+	var rows = employeeList.find('.checkForDelete:checked').closest('tr');
+	var rowCount = rows.length, deleteSucceeded = 0;
+	EmployeeDB.transaction(function() {
+	    rows.each(function() {
+		var employeeId = $(this).data('employeeId');
+		EmployeeStore.remove(employeeId, function(result, error) {
+		    if (error) {
+			alert('Error');
+			return;
+		    }
+		    deleteSucceeded++;
+		    if (deleteSucceeded === rowCount) {
+			rows.remove();
+		    }
 		});
 	    });
-	}
+	});
     });
     $('#checkAll').change(function() {
 	$('.checkForDelete').attr('checked', this.checked);
