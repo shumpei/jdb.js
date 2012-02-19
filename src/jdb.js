@@ -26,6 +26,9 @@
 	    _global['o' + name] ||
 	    _global['ms' + name];
     }
+    function isNullOrUndefined(obj) {
+	return obj === null || obj === undefined;
+    }
     var indexedDB = _global.indexedDB = prefixed('indexedDB');
     var IDBDatabase = _global.IDBDatabase = prefixed('IDBDatabase');
     var IDBCursor = _global.IDBCursor = prefixed('IDBCursor');
@@ -70,13 +73,87 @@
 		options.onComplete,
 		options.onError);
 	},
+	_upgrade: function(tx, oldVersion, newVersion) {
+	    var self = this;
+	    var db = self.idbDatabase;
+
+	    console.log("oldVersion:" + oldVersion + " newVersion:" + newVersion);
+	    var migrationOps = [];
+	    function addMigrationOp(version, fn) {
+		// version is started by 1 (not 0)
+		var index = version - 1;
+		var ops = migrationOps[index];
+		if (ops === undefined) {
+		    ops = migrationOps[index] = [];
+		}
+		ops.push(fn);
+	    }
+	    var scheme = self.stores;
+	    for (var storeName in scheme) {
+		var storeDef = scheme[storeName];
+		var since = storeDef.since || 1;
+		if (typeof since === 'number' &&
+		    oldVersion < since &&
+		    since <= newVersion) {
+		    var createObjectStoreOp = function(_storeName, _opts) {
+			return function(db) {
+			    console.log('create object store:' + _storeName + ', keyPath:' + _opts.keyPath + ', autoIncrement:' + _opts.autoIncrement);
+			    db.createObjectStore(_storeName, _opts);
+			};
+		    };
+		    var keyDef = storeDef.key;
+		    var options = {
+			keyPath: keyDef.path,
+			autoIncrement: keyDef.autoIncrement
+		    };
+		    addMigrationOp(since, createObjectStoreOp(storeName, options));
+		}
+		var indexes = storeDef.indexes;
+		for (var indexName in indexes) {
+		    var indexDef = indexes[indexName];
+		    var since = indexDef.since || 1;
+		    if (typeof since === 'number' &&
+			oldVersion < since &&
+			since <= newVersion) {
+			var createIndexOp = function(_storeName, _indexName, _keyPath, _opts) {
+			    return function(db) {
+				var objectStore = tx.objectStore(_storeName);
+				console.log('create index:[storeName=' + _storeName + '][indexName='+ _indexName + '][keyPath=' + _keyPath + ']');
+				objectStore.createIndex(_indexName, _keyPath, _opts);
+			    };
+			};
+			var opts = {
+			    unique: !!indexDef.unique,
+			    multientry: !!indexDef.multientry
+			};
+			addMigrationOp(since, createIndexOp(storeName, indexName, indexDef.path, opts));
+		    }
+		}
+	    }
+	    for (var i = oldVersion, m = migrationOps.length; i < m; i++) {
+		var versionChangeOps = migrationOps[i];
+		for (var j = 0, n = versionChangeOps.length; j < n; j++) {
+		    versionChangeOps[j](db);
+		}
+	    }
+
+	},
 	open: function(onSuccess, onError) {
 	    var self = this;
 	    console.log('name:' + this.name + ',version:' + this.version);
 	    var r = indexedDB.open(this.name, this.version);
 	    if (typeof onSuccess === 'function') {
 		r.addEventListener('success', function() {
-		    self.idbDatabase = r.result;
+		    var db = self.idbDatabase = r.result;
+
+		    if (typeof db.setVersion === 'function') {
+			var oldVersion = db.version ? parseInt(db.version, 10) : 0;
+			var newVersion = self.version;
+			db.setVersion(newVersion).onsuccess = function() {
+			    console.log('using legacy API: IDBDatabase#setVersion()');
+			    self._upgrade(this.transaction, oldVersion, newVersion);
+			};
+		    }
 		    onSuccess();
 		}, false);
 	    }
@@ -88,6 +165,9 @@
 		var tx = r.transaction;
 		var oldVersion = e.oldVersion || 0;
 		var newVersion = e.newVersion;
+		self._upgrade(tx, oldVersion, newVersion);
+		
+/*		
 		console.log("oldVersion:" + oldVersion + " newVersion:" + newVersion);
 		var migrationOps = [];
 		function addMigrationOp(version, fn) {
@@ -135,8 +215,8 @@
 				};
 			    };
 			    var opts = {
-				unique: indexDef.unique,
-				multientry: indexDef.multientry
+				unique: !!indexDef.unique,
+				multientry: !!indexDef.multientry
 			    };
 			    addMigrationOp(since, createIndexOp(storeName, indexName, indexDef.path, opts));
 			}
@@ -149,6 +229,7 @@
 			versionChangeOps[j](db);
 		    }
 		}
+*/
 	    };
 	    return new OpenDatabaseResult(r);
 	}
@@ -230,38 +311,31 @@
 	this.filters = [];
     }
     ObjectStoreQuery.prototype = {
-	range: function(/* keyPath? range, direction? */) {
-	    var path, range, direction;
-	    if (typeof arguments[0] === 'string') {
-		path = arguments[0];
-		range = arguments[1];
-		direction = arguments[2];
-	    } else {
-		range = arguments[0];
-		direction = arguments[1];
-	    }
-	    this.keyRange = {
-		path: path,
-		range: range,
-		direction: direction
-	    };
+	criteria: function(criteria) {
+	    this._criteria = criteria;
 	    return this;
 	},
 	filter: function(filter) {
 	    this.filters.push(filter);
 	    return this;
 	},
-	iterate: function(callback) {
+	_getData: function(onContinue, onError, /* optional */onEnd) {
 	    var self = this;
-	    var keyRange = self.keyRange || {};
 	    var filters = self.filters;
+	    var criteria = self._criteria;
 	    return executeInCurrentTransaction(
 		function(tx) {
 		    var idbObjectStore = tx.idbTransaction.objectStore(self.store.name);
-		    var r = idbObjectStore.openCursor(keyRange.range, keyRange.direction);
-		    r.onsuccess = function() {
-			var cursor = r.result;
+		    var cursorReq;
+		    if (criteria) {
+			cursorReq = criteria.createCursor(idbObjectStore);
+		    } else {
+			cursorReq = idbObjectStore.openCursor();
+		    }
+		    cursorReq.onsuccess = function() {
+			var cursor = cursorReq.result;
 			if (!cursor) {
+			    typeof onEnd === 'function' && onEnd();
 			    return;
 			}
 			var value = cursor.value;
@@ -271,51 +345,33 @@
 				return;
 			    }
 			}
-			var ret = callback(value);
+			var ret = onContinue(value);
 			if (ret !== false)
 			    cursor['continue']();
 		    };
-		    r.onerror = function() {
-			callback(undefined, r.error);
+		    cursorReq.onerror = function() {
+			onError(undefined, cursorReq.error);
 		    };
 		},
 		self.store.database,
 		IDBTransaction.READ_ONLY,
 		self.store);
 	},
+	iterate: function(callback) {
+	    return this._getData(callback, callback);
+	},
 	list: function(callback) {
-	    var self = this;
 	    var results = [];
-	    var keyRange = self.keyRange || {};
-	    var filters = self.filters;
-	    return executeInCurrentTransaction(
-		function(tx) {
-		    var idbObjectStore = tx.idbTransaction.objectStore(self.store.name);
-		    var r = idbObjectStore.openCursor(keyRange.range, keyRange.direction);
-		    r.onsuccess = function() {
-			var cursor = r.result;
-			if (!cursor) {
-			    callback(results);
-			    return;
-			}
-			var value = cursor.value;
-			for (var i = 0, n = filters.length; i < n; i++) {
-			    if (!filters[i](value)) {
-				cursor['continue']();
-				return;
-			    }
-			}
-			results.push(value);
-			if (ret !== false)
-			    cursor['continue']();
-		    };
-		    r.onerror = function() {
-			callback(undefined, r.error);
-		    };
+	    return this._getData(
+		function onContinue(value) {
+		    results.push(value);
 		},
-		self.store.database,
-		IDBTransaction.READ_ONLY,
-		self.store);
+		function onError(error) {
+		    callback(undefined, error);
+		},
+		function onEnd() {
+		    callback(results);
+		});
 	}
     };
     function StoreOperationResult(req) {
@@ -335,6 +391,86 @@
 	}
     };
 
+    var Criteria = function() {
+	this._direction = 'next';
+	this._dup = true;
+    };
+    Criteria.prototype = {
+	only: function(val) {
+	    this._only = val;
+	},
+	upper: function(val, open) {
+	    this._upper = val;
+	    this._upperOpen = !!open;
+	    return this;
+	},
+	lower: function(val, open) {
+	    this._lower = val;
+	    this._lowerOpen = !!open;
+	    return this;
+	},
+	dir: function(direction) {
+	    if (direction !== 'next' && direction !== 'prev') {
+		throw 'Invalid direction (must be "next" or "prev"):' + direction;
+	    }
+	    this._direction = direction;
+	    return this;
+	},
+	dup: function(allowDuplicate) {
+	    this._dup = (allowDuplicate !== false);
+	},
+	createCursor: function(idbObjectStore) {
+	    var keyRange, direction;
+	    if (this._only) {
+		keyRange = IDBKeyRange.only(this._only);
+	    } else {
+		var upper = this._upper;
+		var upperOpen = this._upperOpen;
+		var lower = this._lower;
+		var lowerOpen = this._lowerOpen;
+		if (!isNullOrUndefined(upper)) {
+		    if (!isNullOrUndefined(lower)) {
+			keyRange = IDBKeyRange.bound(lower, upper, lowerOpen, upperOpen);
+		    } else {
+			keyRange = IDBKeyRange.upperBound(upper, upperOpen);
+		    }
+		} else if (!isNullOrUndefined(lower)) {
+		    keyRange = IDBKeyRange.lowerBound(lower, lowerOpen);
+		}
+	    }
+	    if (this._direction === 'next') {
+		if (this._dup) {
+		    direction = IDBKeyRange.NEXT;
+		} else {
+		    direction = IDBKeyRange.NEXT_NO_DUPLICATE;
+		}
+	    } else {
+		if (this._dup) {
+		    direction = IDBKeyRange.PREV;
+		} else {
+		    direction = IDBKeyRange.PREV_NO_DUPLICATE;
+		}
+	    }
+	    if (this._byKey) {
+		return idbObjectStore.openCursor(keyRange, direction);
+	    } else {
+		return idbObjectStore.index(this._indexName)
+		    .openCursor(keyRange, direction);
+	    }
+	}
+    };
+    var CriteriaBuilder = {
+	byKey: function() {
+	    var criteria = new Criteria();
+	    criteria._byKey = true;
+	    return criteria;
+	},
+	byIndex: function(indexName) {
+	    var criteria = new Criteria();
+	    criteria._indexName = indexName;
+	    return criteria;
+	}
+    };
     var ObjectStore = function(options) {
 	assert(options.name, 'param "name" is required');
 	assert(options.database instanceof Database, 'param "database" must be instance of JDBDatabase');
@@ -391,9 +527,9 @@
 	all: function() {
 	    return new ObjectStoreQuery(this);
 	},
-	range: function() {
+	criteria: function(criteria) {
 	    var query = new ObjectStoreQuery(this);
-	    return ObjectStoreQuery.prototype.range.apply(query, slice.call(arguments));
+	    return new ObjectStoreQuery(this).criteria(criteria);
 	},
 	filter: function(filter) {
 	    return new ObjectStoreQuery(this).filter(filter);
@@ -401,4 +537,5 @@
     };
     _global.JDBDatabase = Database;
     _global.JDBObjectStore = ObjectStore;
+    _global.JDBCriteria = CriteriaBuilder;
 })(this);

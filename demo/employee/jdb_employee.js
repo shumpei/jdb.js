@@ -1,17 +1,14 @@
 $(function() {
     var employeeList = $('#employees > tbody');
 
-    var EmployeeDB = new JDBDatabase('EmployeeDB', 6);
+    var EmployeeDB = new JDBDatabase('EmployeeDB3', 1);
     
     var EmployeeStore = new JDBObjectStore({
 	name: 'EmployeeStore',
 	database: EmployeeDB,
 	key: { path: 'id', autoIncrement: true },
 	indexes: {
-	    birthday: {},
-	    age: { since: 2 },
-	    name: { since: 3 },
-	    aaa: { since: 3 }
+	    ageIdx: { path: 'age' }
 	}
     });
     EmployeeDB
@@ -25,15 +22,18 @@ $(function() {
     function listEmployees() {
 	employeeList.empty();
 	EmployeeStore.all().iterate(function(employee) {
-	    var row = $('<tr/>').data('employeeId', employee.id);
-	    var checkbox = $('<input type="checkbox" class="checkForDelete">');
-	    $('<td/>').append(checkbox).appendTo(row);
-	    $('<td/>', { text: employee.id }).appendTo(row);
-	    $('<td/>', { text: employee.name }).appendTo(row);
-	    $('<td/>', { text: employee.age }).appendTo(row);
-	    $('<td/>', { text: employee.gender }).appendTo(row);
-	    row.appendTo(employeeList);
+	    addEmployeeToListRow(employee);
 	});
+    }
+    function addEmployeeToListRow(employee) {
+	var row = $('<tr/>').data('employeeId', employee.id);
+	var checkbox = $('<input type="checkbox" class="checkForDelete">');
+	$('<td/>').append(checkbox).appendTo(row);
+	$('<td/>', { text: employee.id }).appendTo(row);
+	$('<td/>', { text: employee.name }).appendTo(row);
+	$('<td/>', { text: employee.age }).appendTo(row);
+	$('<td/>', { text: employee.gender }).appendTo(row);
+	row.appendTo(employeeList);
     }
     $('#employeeForm').submit(function(e) {
 	e.preventDefault();
@@ -44,14 +44,15 @@ $(function() {
 	var employee = {
 	    id: id,
 	    name: $('#name').val(),
-	    age: $('#age').val(),
-	    gender: $('#gender').val()
+	    age: parseInt($('#age').val(), 10),
+	    gender: parseInt($('#gender').val(), 10)
 	};
 	EmployeeStore
 	    .put(employee)
 	    .success(function(result) {
 		listEmployees();
-	    }).error(function() {
+	    }).error(function(e) {
+		console.error(this);
 		alert('Error!');
 	    });
 	return false;
@@ -104,5 +105,20 @@ $(function() {
     });
     $('#checkAll').change(function() {
 	$('.checkForDelete').attr('checked', this.checked);
+    });
+    $('#searchEmployeeForm').submit(function(e) {
+	e.preventDefault();
+	var fromAge = parseInt($('#fromAge').val(), 10);
+	var toAge = parseInt($('#toAge').val(), 10);
+
+	employeeList.empty();
+	var criteria =
+	    JDBCriteria.byIndex('ageIdx')
+	    .upper(toAge)
+	    .lower(fromAge);
+	EmployeeStore.criteria(criteria).iterate(function(employee) {
+	    addEmployeeToListRow(employee);
+	});
+	return false;
     });
 });
