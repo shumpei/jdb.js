@@ -1,0 +1,127 @@
+.highlight
+{
+	font-style: italic;
+    xbackground-color:rgb(245,115,99);
+    background-color:rgb(0, 163, 239);
+}
+ul
+{
+}
+.idbTreeStyle
+{
+    background-color:transparent;
+}
+.idbTreeContainer
+{
+    xbackground:-ms-linear-gradient(top, white 0%, lightGray 100%); 
+    xbackground:-moz-linear-gradient( top, white, lightgray);
+    xbackground:-webkit-gradient(linear, center top, center bottom, from(white), to(lightgray));
+    background-color:white;
+    height:100%;
+    border: 1px solid black;
+}
+Table
+{
+    display:block;
+    width:100%;
+    border: none;
+}
+
+.headerRow
+{
+    border-style:none;
+    color:white;
+    background:-ms-linear-gradient(top, rgb(200, 200, 200) 0%, rgb(100, 100, 100) 100%);   
+    background:-moz-linear-gradient(top, rgb(200, 200, 200), rgb(100, 100, 100));
+    background:-webkit-gradient(linear, center top, center bottom, from(rgb(200, 200, 200)), to(rgb(100, 100, 100)));
+    padding:5px;
+    font-weight:bold;
+    xbackground-image:url(data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIHZpZXdCb3g9IjAgMCAxIDEiIHByZXNlcnZlQXNwZWN0UmF0aW89Im5vbmUiPgo8bGluZWFyR3JhZGllbnQgaWQ9ImczMzkiIGdyYWRpZW50VW5pdHM9InVzZXJTcGFjZU9uVXNlIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjAlIiB5Mj0iMTAwJSI+CjxzdG9wIHN0b3AtY29sb3I9IiNGRkZGRkYiIG9mZnNldD0iMCIvPjxzdG9wIHN0b3AtY29sb3I9IiM2NDY0NjQiIG9mZnNldD0iMSIvPgo8L2xpbmVhckdyYWRpZW50Pgo8cmVjdCB4PSIwIiB5PSIwIiB3aWR0aD0iMSIgaGVpZ2h0PSIxIiBmaWxsPSJ1cmwoI2czMzkpIiAvPgo8L3N2Zz4=);
+    xbackground-size:500px 100%;
+    xbackground-repeat:no-repeat;
+}
+
+.headerCell
+{
+    border-left: 1px dotted black;
+    border-right: 1px dotted black;
+    padding-left: 5px;
+    padding-right: 5px;
+    width: 1%;
+    
+}
+
+.recordRow0
+{
+    background-color:white;
+    border-style:none;
+    border-left: 1px dotted black;
+    border-right: 1px dotted black;
+    padding-left: 5px;
+    padding-right: 5px;
+}
+.recordRow1
+{
+    background-color:lightGray;
+    border-style:none;
+    border-left: 1px dotted black;
+    border-right: 1px dotted black;
+    padding-left: 5px;
+    padding-right: 5px;
+}
+.idbdiv
+{
+    xbackground-color: rgba(255, 255, 255, 100);
+    xposition: fixed;
+    xtop: 0px;
+    xleft: 0px;    
+}
+.idbrecordsdiv
+{
+    overflow:auto;
+    width:100%;
+    height:auto;
+    border: 1px solid black;
+    padding: 2px;
+}
+.individualEntry
+{
+    xbackground-color:#b6ff00;
+    background-color: rgb(235,224, 168);
+}
+
+.selectedRecord
+{
+    /*background-color: #ff6a00;*/
+    xbackground-color:rgb(245,115,99);
+    background-color:rgb(0, 163, 239);
+    xcolor:white;
+}
+
+#recordproptable, #recordstable
+{
+    border-collapse: collapse;
+    border: 1px solid black;
+    width: 100%;
+}
+.refreshHidden
+{
+    visibility: hidden;
+}
+
+.idbframe
+{
+    position: absolute;
+    top: 0px;
+    left: 0px;
+}
+
+.titlebar
+{
+    xborder: 1px solid black;
+    font-weight:bold;
+    color:white;
+    background:-ms-linear-gradient(top, rgb(200, 200, 200) 0%, rgb(100, 100, 100) 100%);   
+    background:-moz-linear-gradient(top, rgb(200, 200, 200), rgb(100, 100, 100));
+    background:-webkit-gradient(linear, center top, center bottom, from(rgb(200, 200, 200)), to(rgb(100, 100, 100)));
+}

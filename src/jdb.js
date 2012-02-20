@@ -149,12 +149,22 @@
 		    if (typeof db.setVersion === 'function') {
 			var oldVersion = db.version ? parseInt(db.version, 10) : 0;
 			var newVersion = self.version;
-			db.setVersion(newVersion).onsuccess = function() {
-			    console.log('using legacy API: IDBDatabase#setVersion()');
-			    self._upgrade(this.transaction, oldVersion, newVersion);
-			};
+			if (oldVersion !== newVersion) {
+			    var changeVersionReq = db.setVersion(newVersion);
+			    changeVersionReq.onsuccess = function() {
+				console.log('using legacy API: IDBDatabase#setVersion()');
+				self._upgrade(this.transaction, oldVersion, newVersion);
+				onSuccess();
+			    };
+			    changeVersionReq.onerror = function() {
+				onError(changeVersionReq.error);
+			    };
+			} else {
+			    onSuccess();
+			}
+		    } else {
+			onSuccess();
 		    }
-		    onSuccess();
 		}, false);
 	    }
 	    if (typeof onError === 'function') {
@@ -166,70 +176,7 @@
 		var oldVersion = e.oldVersion || 0;
 		var newVersion = e.newVersion;
 		self._upgrade(tx, oldVersion, newVersion);
-		
-/*		
-		console.log("oldVersion:" + oldVersion + " newVersion:" + newVersion);
-		var migrationOps = [];
-		function addMigrationOp(version, fn) {
-		    // version is started by 1 (not 0)
-		    var index = version - 1;
-		    var ops = migrationOps[index];
-		    if (ops === undefined) {
-			ops = migrationOps[index] = [];
-		    }
-		    ops.push(fn);
-		}
-		
-		var scheme = self.stores;
-		for (var storeName in scheme) {
-		    var storeDef = scheme[storeName];
-		    var since = storeDef.since || 1;
-		    if (typeof since === 'number' &&
-			oldVersion < since &&
-			since <= newVersion) {
-			var createObjectStoreOp = function(_storeName, _opts) {
-			    return function(db) {
-				console.log('create object store:' + _storeName + ', keyPath:' + _opts.keyPath + ', autoIncrement:' + _opts.autoIncrement);
-				db.createObjectStore(_storeName, _opts);
-			    };
-			};
-			var keyDef = storeDef.key;
-			var options = {
-			    keyPath: keyDef.path,
-			    autoIncrement: keyDef.autoIncrement
-			};
-			addMigrationOp(since, createObjectStoreOp(storeName, options));
-		    }
-		    var indexes = storeDef.indexes;
-		    for (var indexName in indexes) {
-			var indexDef = indexes[indexName];
-			var since = indexDef.since || 1;
-			if (typeof since === 'number' &&
-			    oldVersion < since &&
-			    since <= newVersion) {
-			    var createIndexOp = function(_storeName, _indexName, _keyPath, _opts) {
-				return function(db) {
-				    var objectStore = tx.objectStore(_storeName);
-				    console.log('create index:[storeName=' + _storeName + '][indexName='+ _indexName + '][keyPath=' + _keyPath + ']');
-				    objectStore.createIndex(_indexName, _keyPath, _opts);
-				};
-			    };
-			    var opts = {
-				unique: !!indexDef.unique,
-				multientry: !!indexDef.multientry
-			    };
-			    addMigrationOp(since, createIndexOp(storeName, indexName, indexDef.path, opts));
-			}
-		    }
-		}
-		var db = r.result;
-		for (var i = oldVersion, m = migrationOps.length; i < m; i++) {
-		    var versionChangeOps = migrationOps[i];
-		    for (var j = 0, n = versionChangeOps.length; j < n; j++) {
-			versionChangeOps[j](db);
-		    }
-		}
-*/
+		onSuccess();
 	    };
 	    return new OpenDatabaseResult(r);
 	}
