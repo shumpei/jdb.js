@@ -343,17 +343,27 @@
 	this._dup = true;
     };
     Criteria.prototype = {
-	only: function(val) {
+	equal: function(val) {
 	    this._only = val;
 	},
-	upper: function(val, open) {
+	le: function(val) {
 	    this._upper = val;
-	    this._upperOpen = !!open;
+	    this._upperOpen = false;
 	    return this;
 	},
-	lower: function(val, open) {
+	lt: function(val) {
+	    this._upper = val;
+	    this._upperOpen = true;
+	    return this;
+	},
+	ge: function(val) {
 	    this._lower = val;
-	    this._lowerOpen = !!open;
+	    this._lowerOpen = false;
+	    return this;
+	},
+	gt: function(val) {
+	    this._lower = val;
+	    this._lowerOpen = true;
 	    return this;
 	},
 	dir: function(direction) {

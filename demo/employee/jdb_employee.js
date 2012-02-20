@@ -11,6 +11,7 @@ $(function() {
 	    ageIdx: { path: 'age' }
 	}
     });
+    
     EmployeeDB
 	.open(function() {
 	    listEmployees();
@@ -113,9 +114,7 @@ $(function() {
 
 	employeeList.empty();
 	var criteria =
-	    JDBCriteria.byIndex('ageIdx')
-	    .upper(toAge)
-	    .lower(fromAge);
+	    JDBCriteria.byIndex('ageIdx').le(toAge).ge(fromAge);
 	EmployeeStore.criteria(criteria).iterate(function(employee) {
 	    addEmployeeToListRow(employee);
 	});
