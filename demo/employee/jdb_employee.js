@@ -14,6 +14,9 @@ $(function() {
     
     EmployeeDB
 	.open(function() {
+	    EmployeeStore.count(function(count) {
+		alert(count);
+	    });
 	    listEmployees();
 	}, function(e) {
 	    console.error(e);

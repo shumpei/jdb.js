@@ -111,7 +111,7 @@
 		var indexes = storeDef.indexes;
 		for (var indexName in indexes) {
 		    var indexDef = indexes[indexName];
-		    var since = indexDef.since || 1;
+		    var since = indexDef.since || storeDef.since || 1;
 		    if (typeof since === 'number' &&
 			oldVersion < since &&
 			since <= newVersion) {
@@ -376,8 +376,8 @@
 	dup: function(allowDuplicate) {
 	    this._dup = (allowDuplicate !== false);
 	},
-	createCursor: function(idbObjectStore) {
-	    var keyRange, direction;
+	toKeyRange: function() {
+	    var keyRange;
 	    if (this._only) {
 		keyRange = IDBKeyRange.only(this._only);
 	    } else {
@@ -395,6 +395,10 @@
 		    keyRange = IDBKeyRange.lowerBound(lower, lowerOpen);
 		}
 	    }
+	    return keyRange;
+	},
+	createCursor: function(idbObjectStore) {
+	    var keyRange = this.toKeyRange(), direction;
 	    if (this._direction === 'next') {
 		if (this._dup) {
 		    direction = IDBKeyRange.NEXT;
@@ -459,6 +463,26 @@
 	get: function(key, callback) {
 	    return this._exec(function(tx, idbObjectStore) {
 		return idbObjectStore.get(key);
+	    }, callback, IDBTransaction.READ_ONLY);
+	},
+	count: function(/* optional */ criteria, callback) {
+	    if (arguments.length === 1) {
+		//if (typeof criteria === 'function') [
+		    callback = arguments[0];
+		    criteria = null;
+//		}
+	    }
+	    return this._exec(function(tx, idbObjectStore) {
+		if (!criteria) {
+		    return idbObjectStore.count();
+		}
+		var keyRange = criteria.toKeyRange();
+		if (criteria._byKey) {
+		    return idbObjectStore.count(keyRange);
+		} else {
+		    var idbIndex = idbObjectStore.index(criteria._indexName);
+		    return idbIndex.count(keyRange);
+		}
 	    }, callback, IDBTransaction.READ_ONLY);
 	},
 	_exec: function(proc, callback, txMode) {
