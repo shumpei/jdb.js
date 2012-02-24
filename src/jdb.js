@@ -179,6 +179,10 @@
 		onSuccess();
 	    };
 	    return new OpenDatabaseResult(r);
+	},
+	getObjectStore: function(options){
+		options.database = this;
+		return new ObjectStore(options);
 	}
     };
     var currentTransaction;
