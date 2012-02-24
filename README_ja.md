@@ -10,7 +10,7 @@ Indexed Database APIをそのまま利用するのに比べて、jdb.jsが優っ
 * 実行時の動的なDBマイグレーションを容易に(オブジェクトストアやインデックスの定義にsince:versionと指定するだけ）
 * 非同期処理を直感的に記述できる(コールバック、もしくはDefered)
 
-以下に載せるのは、jdb.jsを使用したコードスニペットです。jdb.jsの使いやすさが伝われば幸いです。IndexedDBを直接使うのに比べてコード量は半分以下、コードの保守性も大幅に上がると信じています。
+以下に載せるのは、jdb.jsを使用したコードスニペットです。Indexed Database APIを直接使うのに比べ、非常にコンパクトなコードでのデータベース処理を実現できます。
 
     // データベースへの参照を作成
     var db = new JDBDatabase('database name', 1);
@@ -54,5 +54,6 @@ Indexed Database APIをそのまま利用するのに比べて、jdb.jsが優っ
       // 全検索結果に対して処理を行う
     });
 
-もしjdb.jsに興味を持たれたなら、次は<a href="https://sites.google.com/site/jdbjsdoc/tutorial_ja">チュートリアル</a>に進むとよいでしょう。
+更に詳しい情報は、<a href="https://sites.google.com/site/jdbjsdoc/tutorial_ja">チュートリアル</a>を参照してください。
+
 
