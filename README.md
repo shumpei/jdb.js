@@ -52,6 +52,6 @@ Following code is an example of using jdb.js.
       ...
     });
 
-For more information, see the <a href="https://sites.google.com/site/jdbjsdoc/tutorial_ja">tutorial</a>.
+For more information, see the <a href="https://sites.google.com/site/jdbjsdoc/tutorial">tutorial</a>.
 
 CONTRIBUTING IS ALWAYS WELCOME!

@@ -56,4 +56,4 @@ Indexed Database APIをそのまま利用するのに比べて、jdb.jsが優っ
 
 更に詳しい情報は、<a href="https://sites.google.com/site/jdbjsdoc/tutorial_ja">チュートリアル</a>を参照してください。
 
-
+jdb.jsはまだ生まれたばかりのフレームワークです。どんな貢献でも大歓迎ですので、ご連絡はご遠慮なく!
