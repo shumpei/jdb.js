@@ -1,4 +1,6 @@
 $(function() {
+    var taskList = $('#taskList > tbody');
+
     var TaskDB = new JDBDatabase('TaskDB', 3);
     var TaskStore = new JDBObjectStore({
 	name: 'TaskStore',
@@ -22,6 +24,27 @@ $(function() {
 	    alert('Error');
 	    return;
 	}
-	alert('Open database successfully');
+	listTasks();
+    });
+    function listTasks() {
+	taskList.empty();
+	TaskStore.all().iterate(function(task) {
+	    var row = $('<tr/>').data(task);
+	    $('<td/>').text(task.id).appendTo(row);
+	    $('<td/>').text(task.text).appendTo(row);
+	    $('<td/>').text(task.timestamp.toString()).appendTo(row);
+	    taskList.append(row);
+	});
+    }
+
+    $('#addButton').click(function() {
+	var text = $('#task').val();
+	var timestamp = new Date();
+	TaskStore.put({
+	    text: text,
+	    timestamp: timestamp
+	}).success(function() {
+	    listTasks();
+	});
     });
 });

@@ -465,26 +465,6 @@
 		return idbObjectStore.get(key);
 	    }, callback, IDBTransaction.READ_ONLY);
 	},
-	count: function(/* optional */ criteria, callback) {
-	    if (arguments.length === 1) {
-		//if (typeof criteria === 'function') [
-		    callback = arguments[0];
-		    criteria = null;
-//		}
-	    }
-	    return this._exec(function(tx, idbObjectStore) {
-		if (!criteria) {
-		    return idbObjectStore.count();
-		}
-		var keyRange = criteria.toKeyRange();
-		if (criteria._byKey) {
-		    return idbObjectStore.count(keyRange);
-		} else {
-		    var idbIndex = idbObjectStore.index(criteria._indexName);
-		    return idbIndex.count(keyRange);
-		}
-	    }, callback, IDBTransaction.READ_ONLY);
-	},
 	_exec: function(proc, callback, txMode) {
 	    var self = this;
 	    return executeInCurrentTransaction(
