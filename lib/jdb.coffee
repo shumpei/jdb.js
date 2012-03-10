@@ -2,7 +2,7 @@
 
 _global = this
 
-isFunction = (obj) -> typeof fn is "function"
+isFunction = (obj) -> typeof obj is "function"
 
 safeCall = (target, fn, args...) ->
   fn.apply(target, args) if typeof fn is "function"
@@ -10,8 +10,14 @@ safeCall = (target, fn, args...) ->
 slice = Array.prototype.slice
 
 assert = (expr, errorMessage) ->
-  throw errorMessage unless expr
+  unless expr
+    e = new Error
+    e.message = errorMessage
+    throw e
   true
+
+verifyParameterIsNotMissing = (paramName, param) ->
+  assert(not isNullOrUndefined(param), "parameter [#{paramName}] is required")
 
 capitalize = (s) -> s.charAt(0).toUpperCase() + s.substring(1)
 
@@ -74,6 +80,9 @@ class UpgradeOperations
 
 class Database
   constructor: (@name, @version) ->
+    verifyParameterIsNotMissing "name", name
+    verifyParameterIsNotMissing "version", version
+    assert version > 0, "parameter [version] must be positive integer"
     @stores = {}
 
   getStoreNames: ->
@@ -122,7 +131,7 @@ class Database
             changeVersionReq = db.setVersion(newVersion)
             changeVersionReq.onsuccess = ->
               console.log "using legacy API: IDBDatabase#setVersion()"
-              self._upgrade this.transaction, oldVersion, newVersion
+              self._upgrade self.transaction, oldVersion, newVersion
               onSuccess()
             changeVersionReq.onerror = ->
               safeCall null, onError, changeVersionReq.error
@@ -139,7 +148,8 @@ class Database
       self._upgrade(tx, oldVersion, newVersion);
       safeCall self, onSuccess
       new OpenDatabaseResult(r);
-
+  defineObjectStore: (params) ->
+    new ObjectStore this, params
 class Transaction
   constructor: (@database, @mode, @stores, @onAbort, @onComplete, @onError) ->
     storeNames = []
@@ -324,14 +334,20 @@ class CriteriaBuilder
     criteria
 
 class ObjectStore
-  constructor: (options) ->
+  constructor: (@database, params) ->
+    verifyParameterIsNotMissing "database", @database
+    verifyParameterIsNotMissing "params", params
     {
       name: @name
-      database: @database
       key: @key
       indexes: @indexes
       since: @since
-    } = options
+    } = params
+    assert typeof @name is "string" and @name.length > 0, "parameter [name] must be non-empty string"
+    assert typeof @key is "object" and @key.path?, "parameter [key] must be object which has 'path' property"
+    @indexes = [] unless @indexes?
+    assert @indexes instanceof Array, "parameter [indexes] must be an Array"
+
     @database.stores[@name] = this
   _exec: (proc, callback, txMode) ->
     self = this
@@ -377,5 +393,4 @@ _global.IDBCursor = prefixed "IDBCursor"
 _global.IDBKeyRange = prefixed "IDBKeyRange"
 _global.IDBTransaction = prefixed "IDBTransaction"
 _global.JDBDatabase = Database;
-_global.JDBObjectStore = ObjectStore;
 _global.JDBCriteria = CriteriaBuilder;
